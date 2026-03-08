@@ -1,5 +1,5 @@
 #!/bin/bash
-service="mud_phish"
+service="sensor-stream"
 
 # choose user or system control
 systemctl="systemctl --user"
