@@ -1,0 +1,11 @@
+py37
+
+lib
+lib/*
+
+junk
+junk/*
+
+*.pyc
+*.*#
+*.*~

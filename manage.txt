@@ -1,0 +1,14 @@
+git clone https://github.com/coburnw/systemd-app-manager.git
+
+simple bash script menu for managing a service in systemd
+
+mv service.service to yourapp.service
+
+nano manage.sh and set
+service="yourapp"
+
+chmod u+x manage.sh
+./manage.sh
+
+edit yourapp.service to fit your systemd needs
+
