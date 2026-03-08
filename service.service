@@ -1,10 +1,10 @@
 [Unit]
-Description=My App Description
+Description=Stream sensor data to Grovestreams
 After=network.target
 
 [Service]
-WorkingDirectory=/home/pi/myapp
-ExecStart=/home/pi/my_env/bin/python myapp.py
+WorkingDirectory=/home/pi/mud/bucket/sensor-stream
+ExecStart=/home/pi/mud/venv/bin/python sensor-stream.py
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
