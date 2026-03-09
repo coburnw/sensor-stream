@@ -178,7 +178,7 @@ if __name__ == '__main__':
     with smbus.SMBus(1) as bus:
         sources = dict()
         PhorpSource.i2c_bus = bus
-        print(PhorpSource.__name__)
+        # print(PhorpSource.__name__)
         sources[PhorpSource.__name__] = PhorpSource
     
         if mode == 'edit':
@@ -210,8 +210,10 @@ if __name__ == '__main__':
                 time.sleep(project.sample_period)
 
             
-        else:            
+        else:
             # load toml file, initialize sensors, and run
+            feed_debug = False
+            
             project = silo.Deploy('deployment.toml')
             if project.folder_name == '' or project.group_name == '' or project.key_name == '':
                 print('deployment section of .toml file not configured.')
@@ -219,9 +221,9 @@ if __name__ == '__main__':
                 
             print('Streaming to Components/{}/{}'.format(project.folder_name, project.group_name))
             project.connect(sources)
-            print('{}s {}s'.format(project.stream_period, project.sample_period))
+            print('upload period: {}s, sample period: {}s, filter: {}'.format(project.stream_period, project.sample_period, project.time_constant))
 
-            feed = gs.Feed(project.key_name, compress=True)
+            feed = gs.Feed(project.key_name, compress=True, debug=feed_debug)
             comps = gs.Components(project.key_name)
             
             components = gs.Components(project.folder_name)
@@ -235,21 +237,18 @@ if __name__ == '__main__':
             last_update = time.time()
             while True:
                 timestamp = time.time()
-                print('{}: '.format(timestamp), end='')
-                # for stream in component.streams:
-                #     stream.update()
-                #     #val = round(sensor.scaled_value, 1)
-                #     #parm = '{} {} {}, '.format(sensor.name, val, sensor.scaled_units)
-                #     #print(parm, end='')
-                #     time.sleep(0.1)
-
+                if feed_debug:
+                    print('{}: '.format(timestamp), end='')
+                    
                 components.update()
                 
                 if last_update + project.stream_period > timestamp:
                     feed.put(components)
                     last_update = timestamp
-                
-                print('')
+
+                if feed_debug:
+                    print('')
+                    
                 time.sleep(project.sample_period)
 
     exit()
