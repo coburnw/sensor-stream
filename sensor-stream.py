@@ -169,10 +169,13 @@ if __name__ == '__main__':
             mode = 'edit'
         elif switch == '-t':
             mode = 'test'
+        elif switch == '-l':
+            mode = 'log'
         else:
             print('python {} -e  # to edit silo sensors'.format(sys.argv[0]))
-            print('python {} -t  # to test sensor deployment'.format(sys.argv[0]))
+            print('python {} -t  # to test sensor operation'.format(sys.argv[0]))
             print('python {}     # to run sensor deployment'.format(sys.argv[0]))
+            print('python {} -l  # to run sensor deployment with logging'.format(sys.argv[0]))
             exit()
 
     with smbus.SMBus(1) as bus:
@@ -182,6 +185,8 @@ if __name__ == '__main__':
         sources[PhorpSource.__name__] = PhorpSource
     
         if mode == 'edit':
+            # edit toml configuration file
+            
             procs = dict()
             procs['do'] = procedures.DoProcedure(sources)
             procs['ph'] = procedures.PhProcedure(sources)
@@ -193,7 +198,8 @@ if __name__ == '__main__':
             shell.cmdloop()
 
         elif mode == 'test':
-            # load toml file, initialize sensors, and run
+            # load toml file, initialize sensors, and stream to stdio
+            
             project = silo.Deploy()
             project.load()
             project.connect(sources)
@@ -211,8 +217,11 @@ if __name__ == '__main__':
 
             
         else:
-            # load toml file, initialize sensors, and run
+            # load toml file, initialize sensors, and stream to grovestreams
+            
             feed_debug = False
+            if mode == 'log':
+                feed_debug = True
             
             project = silo.Deploy('deployment.toml')
             if project.folder_name == '' or project.group_name == '' or project.key_name == '':

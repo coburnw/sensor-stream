@@ -38,7 +38,8 @@ class ThermistorProcedure(silo.PhorpNtcBetaProcedure):
 
         self.property = 'Temperature'
         self.scaled_units = 'degC'
-
+        self.unit_id = 'celsius'
+        
         # the default setpoint settings.
         self.parameters['beta'] = silo.Quantity('Beta', 'K', 3574.6)
         self.parameters['r25'] = silo.Quantity('R25', 'Ohms', 10000)
@@ -63,8 +64,9 @@ class DoProcedure(silo.PolynomialProcedure):
         self.kind = 'do'
         
         self.property = 'Dissolved Oxygen'
-        self.scaled_units = 'mg/L'
-
+        self.scaled_units = 'mV'
+        self.unit_id = 'milli_volts'
+        
         # the default setpoint settings.
         sp1 = silo.Quantity('SP1', self.scaled_units, 0.0)
         sp2 = silo.Quantity('SP2', self.scaled_units, 9.09)
@@ -93,6 +95,7 @@ class OrpProcedure(silo.PolynomialProcedure):
 
         self.property = 'Eh'
         self.scaled_units = 'mV'
+        self.unit_id = 'milli_volts'
 
         # the default setpoint settings.
         sp1 = silo.Quantity('SP1', self.scaled_units, 0.0)
@@ -122,6 +125,7 @@ class PhProcedure(silo.PolynomialProcedure):
 
         self.property = 'pH'
         self.scaled_units = 'pH'
+        self.units_id = 'ph'
 
         # the default setpoint settings.
         sp1 = silo.Quantity('SP1', self.scaled_units, 4.0)
