@@ -25,6 +25,29 @@
 
 import sensor_silo as silo
 
+class Co2Procedure(silo.NullProcedure):
+    intro = 'Atlas Scientific EZO CO2 Sensor'
+    
+    def __init__(self, streams, *kwargs):
+        super().__init__(streams, *kwargs)
+
+        self.stream_type = 'Co2Source'
+        self.stream_address = '0x69'
+        
+        self.kind = 'co2'
+
+        self.property = 'CO2'
+        self.scaled_units = 'ppm'
+        self.unit_id = 'ppm'
+
+        return
+
+    def quality(self, sensor):
+        print(' Not implemented ')
+
+        return
+
+    
 class ThermistorProcedure(silo.PhorpNtcBetaProcedure):
     intro = 'Beta Thermistor Configuration'
     
