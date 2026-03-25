@@ -3,7 +3,7 @@ import mcp342x
 class PhorpChannel(mcp342x.Channel):
     @property
     def id(self):
-        # reverse board id from channel number to mach board labeling
+        # override to reverse channel numbers to match board labeling
         return '{}{}'.format(self._device.id, 4-self.number)
 
 
@@ -11,8 +11,8 @@ class PhorpAdc(mcp342x.Mcp3428):
     def __init__(self, smbus, prefix):
         self.board_id = prefix
 
-        address = {'a':0x68, 'b':0x69, 'c':0x70, 'd':0x71,
-                   'e':0x72, 'f':0x73, 'g':0x74, 'h':0x75}
+        address = {'a':0x68, 'b':0x69, 'c':0x6a, 'd':0x6b,
+                   'e':0x6c, 'f':0x6d, 'g':0x6e, 'h':0x6f}
         
         if prefix.lower() not in address.keys():
             raise ValueError('board prefix must range from a to h inclusive')
