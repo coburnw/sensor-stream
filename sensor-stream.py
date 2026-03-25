@@ -65,11 +65,14 @@ class Co2Source(SensorSource):
         return
 
     def validate_address(self, address):
-        # try:
-        address = int(address, 16)
-
         low = 0x60
         hi = 0x70
+
+        try:
+            address = int(address, 16)
+        except ValueError:
+            return 'invalid address. Valid address range from hexadecimal 0x{} to 0x{}'.format(low, hi)
+            
         if address not in range(low, hi) :
             return 'invalid address. Valid address range from hexadecimal 0x{} to 0x{}'.format(low, hi)
 
