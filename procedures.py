@@ -148,7 +148,7 @@ class PhProcedure(silo.PolynomialProcedure):
 
         self.property = 'pH'
         self.scaled_units = 'pH'
-        self.units_id = 'ph'
+        self.unit_id = 'ph'
 
         # the default setpoint settings.
         sp1 = silo.Quantity('SP1', self.scaled_units, 4.0)
