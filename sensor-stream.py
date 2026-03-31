@@ -286,6 +286,8 @@ def test_deployment(sources):
             project.connect(sources)
 
             while True:
+                timestamp = time.time()
+                
                 for sensor in project.sensors.values():
                     if sensor.is_deployed:
                         sensor.update()
@@ -294,7 +296,9 @@ def test_deployment(sources):
                         print(parm, end='')
                         # sys.stdout.flush()
 
-                print('')
+                duty_cycle = (time.time() - timestamp) / project.sample_period * 100
+                print('duty_cycle = {}%'.format(round(duty_cycle, 1)))
+                
                 time.sleep(project.sample_period)
             
     return
@@ -353,7 +357,9 @@ def run_deployment(sources, mode):
                     last_update = timestamp
 
                 if feed_debug:
-                    print('')
+                    duty_cycle = (time.time() - timestamp) / project.sample_period * 100
+                    print('duty_cycle = {}%'.format(round(duty_cycle, 1)))
+                    #print('\n')
                     
                 time.sleep(project.sample_period)
 
