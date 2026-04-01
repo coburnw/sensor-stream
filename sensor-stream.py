@@ -42,11 +42,14 @@ class SensorSource(silo.Stream):
         return cls.i2c_bus
     
 
+class EzoSource(SensorSource):
+    pass
+
 class Co2Source(SensorSource):
     def __init__(self):
         super().__init__(self.__class__.__name__)
 
-        self.address = None
+        self.address = None  # a validated ezo address string in the hex format '0xNN'
         self.ezo = None
         
         self._raw_value = 0
@@ -56,10 +59,17 @@ class Co2Source(SensorSource):
 
         return
     
-    def connect(self, address):
-        self.address = int(address, 16)
+    def connect(self, address):        
+        err_msg = self.validate_address(address)
         
-        self.ezo = atlas.EzoCO2(self.bus, self.address)
+        # connect() expects a validated address.  Raise if not!
+        if err_msg is not None:
+            raise ValueError('Co2Source.connect({}): {}'.format(address, err_msg))
+        
+        self.address = address
+        bus_address = int(self.address, 16)
+        
+        self.ezo = atlas.EzoCO2(self.bus, bus_address)
         self.measured_quantity = silo.Quantity('CO2', self.ezo.units)
         
         return
@@ -68,13 +78,20 @@ class Co2Source(SensorSource):
         low = 0x60
         hi = 0x70
 
-        try:
-            address = int(address, 16)
-        except ValueError:
-            return 'invalid address. Valid address range from hexadecimal 0x{} to 0x{}'.format(low, hi)
+        address = address.strip().lower()
+        
+        if address == 'nd':
+            pass
+        elif '0x' not in address:
+            return 'invalid address. Address must be in hexadecimal format, for example: 0x3a'
+        else:
+            try:
+                address = int(address, 16)
+            except ValueError:
+                return 'invalid address. Valid address range from hexadecimal 0x{:X} to 0x{:X}'.format(low, hi)
             
-        if address not in range(low, hi) :
-            return 'invalid address. Valid address range from hexadecimal 0x{} to 0x{}'.format(low, hi)
+            if address not in range(low, hi) :
+                return 'invalid address. Valid address range from hexadecimal 0x{:X} to 0x{:X}'.format(low, hi)
 
         return None
         
