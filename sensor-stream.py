@@ -17,6 +17,7 @@
 
 import sys
 import time
+import datetime
 
 import smbus3 as smbus
 import phorp
@@ -219,7 +220,7 @@ class RollingAverage():
         if filter_constant < 1.0:
             filter_constant = 1.0
             
-        self.n = filter_constant
+        self.k = filter_constant
         self.value= initial_value
 
         return
@@ -227,8 +228,8 @@ class RollingAverage():
     def update(self, new_sample):
         result = self.value
         
-        result -= self.value / self.n
-        result += new_sample / self.n
+        result -= self.value / self.k
+        result += new_sample / self.k
 
         self.value = result
         
@@ -250,6 +251,10 @@ class GroveStream(gs.RandomStream):
         
         return
 
+    def __str__(self):
+        return '{}.{}: {} {}, '.format(self.sensor.location, self.sensor.name, self.filter.value, self.sensor.scaled_units)
+
+    
     def update(self):
         self.sensor.update()
         value = self.filter.update(self.sensor.scaled_value)
@@ -259,6 +264,42 @@ class GroveStream(gs.RandomStream):
         
         return
 
+class Timestamp():
+    def __init__(self, timestamp=None):
+        self.value = timestamp
+
+        if not self.value:
+            self.value = time.time()
+
+        return
+
+    def __str__(self):
+        t = datetime.datetime.fromtimestamp(self.value)
+        return t.strftime('%H:%M:%S')
+
+    def __sub__(self, value):
+        return self.value - value
+    
+    def __add__(self, value):
+        return self.value + value
+
+    def __gt__(self, value):
+        return self.value > value
+
+    def __ge__(self, value):
+        return self.value >= value
+
+    def __lt__(self, value):
+        return self.value < value
+
+    def __le__(self, value):
+        return self.value <= value
+
+    def __int__(self):
+        return int(self.value)
+    
+    def __float__(self):
+        return self.value
     
 def edit_deployment(sources):
     procs = dict()
@@ -301,6 +342,9 @@ def test_deployment(sources):
             sources[PhorpSource.__name__].i2c_bus = phorp_bus
 
             project.connect(sources)
+
+            print('Streaming to Components/{}/{}'.format(project.folder_name, project.group_name))
+            print('upload period: {}s, sample period: {}s, filter: {}'.format(project.stream_period, project.sample_period, project.filter_constant))
 
             while True:
                 timestamp = time.time()
@@ -345,7 +389,7 @@ def run_deployment(sources, mode):
     
     for sensor in project.sensors.values():
         if sensor.is_deployed:
-            component.streams.append(GroveStream(sensor, project.time_constant))
+            component.streams.append(GroveStream(sensor, project.filter_constant))
 
     components.append(component)
 
@@ -358,11 +402,11 @@ def run_deployment(sources, mode):
             project.connect(sources)
     
             print('Streaming to Components/{}/{}'.format(project.folder_name, project.group_name))
-            print('upload period: {}s, sample period: {}s, filter: {}'.format(project.stream_period, project.sample_period, project.time_constant))
+            print('upload period: {}s, sample period: {}s, filter: {}'.format(project.stream_period, project.sample_period, project.filter_constant))
             
-            last_update = 0
+            last_update = Timestamp(0)
             while True:
-                timestamp = time.time()
+                timestamp = Timestamp() #time.time()
                     
                 if feed_debug:
                     print('{}: '.format(timestamp), end='')
@@ -374,9 +418,12 @@ def run_deployment(sources, mode):
                     last_update = timestamp
 
                 if feed_debug:
-                    duty_cycle = (time.time() - timestamp) / project.sample_period * 100
+                    for stream in component.streams.streams.values():
+                        print(stream, end='')
+                        
+                if feed_debug:
+                    duty_cycle = (time.time() - float(timestamp)) / project.sample_period * 100
                     print('duty_cycle = {}%'.format(round(duty_cycle, 1)))
-                    #print('\n')
                     
                 time.sleep(project.sample_period)
 
