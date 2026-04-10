@@ -104,21 +104,20 @@ class Co2Source(SensorSource):
             self.ezo.update()
 
         if self.ezo.value is None:
-            # print('co2 sample value is None')
-            pass
-        elif self.ezo.value < 100:
-            # print('co2 sample value is {} (skipping)'.format(self.ezo.value))
+            #print('co2 sample value is None (skipping)')
             pass
         else:
-            # self.stats.push(self.ezo.value)
-            
-            # std_err = 10
-            # z_score = (self.ezo.value - self.stats.mean()) / std_err
-            # if abs(z_score) < 3:
-            self._raw_value = self.ezo.value
-                
-            # print(' co2 sample {} z-score = {}. {}'.format(self.ezo.value, z_score, self.stats))
-            # print(' co2 sample {}'.format(self.ezo.value))
+            self.stats.push(self.ezo.value)
+
+            std_err = 8 # arbitrarily chosen.  Might be fun to explore
+            t_statistic = round(self.stats.z_score(self.ezo.value, std_err), 3)
+
+            if abs(t_statistic) < 20:
+                self._raw_value = self.ezo.value
+                #print(' co2 sample {} z-score = {}. {}'.format(self.ezo.value, t_statistic, self.stats))
+            else:
+                #print(' co2 sample {} z-score = {} (discarded). {}'.format(self.ezo.value, t_statistic, self.stats))
+                pass
             
         self.measured_quantity.value = self.raw_value
 
