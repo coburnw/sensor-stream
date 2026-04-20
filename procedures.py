@@ -94,7 +94,8 @@ class DoProcedure(silo.PolynomialProcedure):
         sp1 = silo.Quantity('SP1', self.scaled_units, 0.0)
         sp2 = silo.Quantity('SP2', self.scaled_units, 9.09)
 
-        self.parameters['sp1'] = silo.ConstantSetpoint(sp1, sp1.clone())
+        # self.parameters['sp1'] = silo.ConstantSetpoint(sp1, sp1.clone())
+        self.parameters['sp1'] = silo.StreamSetpoint(sp1)
         self.parameters['sp2'] = silo.StreamSetpoint(sp2)
 
         return

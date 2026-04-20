@@ -77,7 +77,7 @@ class Co2Source(SensorSource):
 
     def validate_address(self, address):
         low = 0x60
-        hi = 0x70
+        hi = 0x7F
 
         address = address.strip().lower()
         
