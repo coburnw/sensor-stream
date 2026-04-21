@@ -69,7 +69,7 @@ class Co2Source(SensorSource):
         
         self.address = address
         bus_address = int(self.address, 16)
-        
+
         self.ezo = atlas.EzoCO2(self.bus, bus_address)
         self.measured_quantity = silo.Quantity('CO2', self.ezo.units)
         
@@ -299,134 +299,142 @@ class Timestamp():
     
     def __float__(self):
         return self.value
-    
-def edit_deployment(sources):
-    procs = dict()
-    procs['do'] = procedures.DoProcedure(sources)
-    procs['ph'] = procedures.PhProcedure(sources)
-    procs['orp'] = procedures.OrpProcedure(sources)
-    procs['ntc'] = procedures.ThermistorProcedure(sources)
-    procs['co2'] = procedures.Co2Procedure(sources)
 
-    # xx shell.procedures.append(proc)
-    shell = silo.Shell(procs)
-    
-    i2c_ezo = 0
-    i2c_phorp = 1
+class Deployment():
+    def __init__(self, sources):
+        self.sources = sources
 
-    with smbus.SMBus(i2c_ezo) as ezo_bus: # xx fix bus number
-        sources[Co2Source.__name__].i2c_bus = ezo_bus
-        
-        with smbus.SMBus(i2c_phorp) as phorp_bus:
-            sources[PhorpSource.__name__].i2c_bus = phorp_bus
+        self.project = silo.Deploy()                
 
-            # edit toml configuration file
-            shell.cmdloop()
-
-    return
-
-def test_deployment(sources):
-    # load toml file, initialize sensors, and stream to stdio
-            
-    project = silo.Deploy()                
-    project.load()
-    if project.sensors is None:
-        print('no deployed sensors found in .toml file.')
-        return
-                    
-    with smbus.SMBus(project.i2c_stemma) as ezo_bus:
-        sources[Co2Source.__name__].i2c_bus = ezo_bus
-        
-        with smbus.SMBus(project.i2c_qwiic) as phorp_bus:
-            sources[PhorpSource.__name__].i2c_bus = phorp_bus
-
-            project.connect(sources)
-
-            print('Streaming to Components/{}/{}'.format(project.folder_name, project.group_name))
-            print('upload period: {}s, sample period: {}s, filter: {}'.format(project.stream_period, project.sample_period, project.filter_constant))
-
-            while True:
-                timestamp = time.time()
-                
-                for sensor in project.sensors.values():
-                    if sensor.is_deployed:
-                        sensor.update()
-                        val = round(sensor.scaled_value, 1)
-                        parm = '{}.{}: {} {}, '.format(sensor.location, sensor.name, val, sensor.scaled_units)
-                        print(parm, end='')
-                        # sys.stdout.flush()
-
-                duty_cycle = (time.time() - timestamp) / project.sample_period * 100
-                print('duty_cycle = {}%'.format(round(duty_cycle, 1)))
-                
-                time.sleep(project.sample_period)
-            
-    return
-
-def run_deployment(sources, mode):
-    # load toml file, initialize sensors, and stream to grovestreams
-            
-    feed_debug = False
-    if mode == 'log':
-        feed_debug = True
-            
-    project = silo.Deploy('deployment.toml')
-    # project.load()
-    if project.sensors is None:
-        print('no deployed sensors found in .toml file.')
-        return
-                    
-    if project.folder_name == '' or project.group_name == '' or project.key_name == '':
-        print('deployment section of .toml file not configured.')
         return
 
-    feed = gs.Feed(project.key_name, compress=True, debug=feed_debug)
-    
-    # comps = gs.Components(project.key_name)
-    components = gs.Components(project.folder_name)
-    component = gs.Component(project.group_name)
-    
-    for sensor in project.sensors.values():
-        if sensor.is_deployed:
-            component.streams.append(GroveStream(sensor, project.filter_constant))
+    def edit(self):
+        procs = dict()
+        procs['do'] = procedures.DoProcedure(self.sources)
+        procs['ph'] = procedures.PhProcedure(self.sources)
+        procs['orp'] = procedures.OrpProcedure(self.sources)
+        procs['ntc'] = procedures.ThermistorProcedure(self.sources)
+        procs['co2'] = procedures.Co2Procedure(self.sources)
 
-    components.append(component)
+        # xx shell.procedures.append(proc)
+        shell = silo.Shell(procs)
+    
+        #i2c_ezo = 0
+        #i2c_phorp = 1
 
-    with smbus.SMBus(project.i2c_stemma) as ezo_bus:
-        sources[Co2Source.__name__].i2c_bus = ezo_bus
+        with smbus.SMBus(self.project.i2c_stemma) as ezo_bus:
+            self.sources[Co2Source.__name__].i2c_bus = ezo_bus
         
-        with smbus.SMBus(project.i2c_qwiic) as phorp_bus:
-            sources[PhorpSource.__name__].i2c_bus = phorp_bus
+            with smbus.SMBus(self.project.i2c_qwiic) as phorp_bus:
+                self.sources[PhorpSource.__name__].i2c_bus = phorp_bus
 
-            project.connect(sources)
-    
-            print('Streaming to Components/{}/{}'.format(project.folder_name, project.group_name))
-            print('upload period: {}s, sample period: {}s, filter: {}'.format(project.stream_period, project.sample_period, project.filter_constant))
+                # edit toml configuration file
+                shell.cmdloop()
+
+        return
+
+    def test(self):
+        # load toml file, initialize sensors, and stream to stdio
             
-            last_update = Timestamp(0)
-            while True:
-                timestamp = Timestamp() #time.time()
+        self.project.load()
+        if self.project.sensors is None:
+            print('no deployed sensors found in .toml file.')
+            return
                     
-                if feed_debug:
-                    print('{}: '.format(timestamp), end='')
-                    
-                components.update()
-                
-                if timestamp > (last_update + project.stream_period):
-                    feed.put(components)    
-                    last_update = timestamp
+        print("opening ezo port {}".format(self.project.i2c_stemma))
+        with smbus.SMBus(self.project.i2c_stemma) as ezo_bus:
+            self.sources[Co2Source.__name__].i2c_bus = ezo_bus
+        
+            with smbus.SMBus(self.project.i2c_qwiic) as phorp_bus:
+                self.sources[PhorpSource.__name__].i2c_bus = phorp_bus
 
-                if feed_debug:
-                    for stream in component.streams.streams.values():
-                        print(stream, end='')
-                        
-                if feed_debug:
-                    duty_cycle = (time.time() - float(timestamp)) / project.sample_period * 100
+                self.project.connect(self.sources)
+
+                print('Streaming to Components/{}/{}'.format(self.project.folder_name, self.project.group_name))
+                print('upload period: {}s, sample period: {}s, filter: {}'.format(self.project.stream_period, self.project.sample_period, self.project.filter_constant))
+
+                while True:
+                    timestamp = time.time()
+                
+                    for sensor in self.project.sensors.values():
+                        if sensor.is_deployed:
+                            sensor.update()
+                            val = round(sensor.scaled_value, 1)
+                            parm = '{}.{}: {} {}, '.format(sensor.location, sensor.name, val, sensor.scaled_units)
+                            print(parm, end='')
+                            # sys.stdout.flush()
+
+                    duty_cycle = (time.time() - timestamp) / self.project.sample_period * 100
                     print('duty_cycle = {}%'.format(round(duty_cycle, 1)))
-                    
-                time.sleep(project.sample_period)
+                
+                    time.sleep(self.project.sample_period)
+            
+        return
 
-    return
+    def run(self, mode):
+        # load toml file, initialize sensors, and stream to grovestreams
+            
+        feed_debug = False
+        if mode == 'log':
+            feed_debug = True
+            
+        # self.project = silo.Deploy('deployment.toml')
+        self.project.load('deployment.toml')
+        if self.project.sensors is None:
+            print('no deployed sensors found in .toml file.')
+            return
+                    
+        if self.project.folder_name == '' or self.project.group_name == '' or self.project.key_name == '':
+            print('deployment section of .toml file not configured.')
+            return
+
+        feed = gs.Feed(self.project.key_name, compress=True, debug=feed_debug)
+    
+        # comps = gs.Components(self.project.key_name)
+        components = gs.Components(self.project.folder_name)
+        component = gs.Component(self.project.group_name)
+    
+        for sensor in self.project.sensors.values():
+            if sensor.is_deployed:
+                component.streams.append(GroveStream(sensor, self.project.filter_constant))
+
+        components.append(component)
+
+        with smbus.SMBus(self.project.i2c_stemma) as ezo_bus:
+            self.sources[Co2Source.__name__].i2c_bus = ezo_bus
+        
+            with smbus.SMBus(self.project.i2c_qwiic) as phorp_bus:
+                self.sources[PhorpSource.__name__].i2c_bus = phorp_bus
+
+                self.project.connect(self.sources)
+    
+                print('Streaming to Components/{}/{}'.format(self.project.folder_name, self.project.group_name))
+                print('upload period: {}s, sample period: {}s, filter: {}'.format(self.project.stream_period, self.project.sample_period, self.project.filter_constant))
+            
+                last_update = Timestamp(0)
+                while True:
+                    timestamp = Timestamp() #time.time()
+                    
+                    if feed_debug:
+                        print('{}: '.format(timestamp), end='')
+                    
+                    components.update()
+                
+                    if timestamp > (last_update + self.project.stream_period):
+                        feed.put(components)    
+                        last_update = timestamp
+
+                    if feed_debug:
+                        for stream in component.streams.streams.values():
+                            print(stream, end='')
+                        
+                    if feed_debug:
+                        duty_cycle = (time.time() - float(timestamp)) / self.project.sample_period * 100
+                        print('duty_cycle = {}%'.format(round(duty_cycle, 1)))
+                    
+                    time.sleep(self.project.sample_period)
+
+        return
 
     
     
@@ -453,12 +461,14 @@ if __name__ == '__main__':
     sources = dict()
     sources[PhorpSource.__name__] = PhorpSource
     sources[Co2Source.__name__] = Co2Source
+
+    deployment = Deployment(sources)
             
     if mode == 'edit':
-        edit_deployment(sources)
+        deployment.edit()
     elif mode == 'test':
-        test_deployment(sources)
+        deployment.test()
     else:
-        run_deployment(sources, mode)
+        deployment.run(mode)
 
     exit()
