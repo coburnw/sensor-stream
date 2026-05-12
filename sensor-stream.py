@@ -70,7 +70,15 @@ class Co2Source(SensorSource):
         self.address = address
         bus_address = int(self.address, 16)
 
+        # load the right driver
         self.ezo = atlas.EzoCO2(self.bus, bus_address)
+        try:
+            if self.ezo.device_id == 'CO2E':
+                print('loading ENV-CO2 driver')
+                self.ezo = atlas.EnvCO2(self.bus, bus_address)
+        except(OSError) as err:
+            print('failure loading CO2 device on bus {}, address 0x{:X}: {}'.format('?', bus_address, err))
+            
         self.measured_quantity = silo.Quantity('CO2', self.ezo.units)
         
         return
@@ -106,7 +114,11 @@ class Co2Source(SensorSource):
         if self.ezo.value is None:
             #print('co2 sample value is None (skipping)')
             pass
+        elif self.ezo.device_id == 'CO2E':
+            # good.  got a env-co2 device
+            self._raw_value = self.ezo.value
         else:
+            # use a t-score to weed out bad values from ezo-co2 device
             self.stats.push(self.ezo.value)
 
             std_err = 8 # arbitrarily chosen.  Might be fun to explore
