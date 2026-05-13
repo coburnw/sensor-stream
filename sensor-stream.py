@@ -70,12 +70,16 @@ class Co2Source(SensorSource):
         self.address = address
         bus_address = int(self.address, 16)
 
-        # load the right driver
-        self.ezo = atlas.EzoCO2(self.bus, bus_address)
+        # determine device and load the right driver
+        self.ezo = atlas.EnvCO2(self.bus, bus_address)
         try:
-            if self.ezo.device_id == 'CO2E':
-                print('loading ENV-CO2 driver')
+            device_id = self.ezo.device_id
+            if device_id == 'CO2E':
+                print('found "{}". loading new ENV-CO2 driver'.format(device_id))
                 self.ezo = atlas.EnvCO2(self.bus, bus_address)
+            else:
+                print('found "{}". loading old clunky EZO-CO2 driver'.format(device_id))
+                self.ezo = atlas.EzoCO2(self.bus, bus_address)
         except(OSError) as err:
             print('failure loading CO2 device on bus {}, address 0x{:X}: {}'.format('?', bus_address, err))
             
